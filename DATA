@@ -174,7 +174,9 @@ EconomicData$TOTAL <- EconomicData$CROPDMG + EconomicData$PROPDMG
 conomicData <- na.omit(EconomicData[EconomicData$TOTAL > 0,])
 dim(EconomicData)
 [1] 431   4
-                
+ 
+ 
+V-) ANALYSIS OF HARMFUL EFFECTS CAUSED BY NATURAL DISASTERS
 HealthData <- arrange(HealthData, desc(FATALITIES), desc(INJURIES), desc(TOTAL))
 HealthTop10 <- head(HealthData, 10)
 colnames(HealthTop10) <- c("EVTYPE", "Injuries", "Fatalities","Total")
@@ -182,11 +184,12 @@ colnames(HealthTop10) <- c("EVTYPE", "Injuries", "Fatalities","Total")
 HealthTop10 <- melt(HealthTop10, id.vars = 1)
 ggplot(HealthTop10, aes(x=EVTYPE, y=value)) + 
     geom_bar(aes(fill = variable), position = "dodge", stat="identity") + 
-    labs(title="FATALITIES CAUSED BY NATURAL DISASTERS", 
+    labs(title="HARMFUL EFFECTS OF NATURAL DISASTERS", 
          x="Event Type", y="Number of People") +
      theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
    scale_fill_discrete(name="Damage Types")
 
+VI-) ANALYSIS OF ECONOMIC DAMAGE CAUSED BY NATURAL DISASTERS
 EconomicData <- arrange(EconomicData, desc(TOTAL), desc(PROPDMG), desc(CROPDMG))
 EconomicTop10 <- head(EconomicData, n=10)
 colnames(EconomicTop10) <- c("EVTYPE", "Crop", "Property", "Total")
@@ -195,8 +198,13 @@ ggplot(EconomicTop10, aes(x=EVTYPE, y=value)) +
         geom_bar(aes(fill = variable), 
                  position = "dodge", 
                  stat="identity") + 
-        labs(title="ECONOMIC EFFECTS OF NATURAL DISASTERS", 
+        labs(title="ECONOMIC DAMAGE CAUSED BY NATURAL DISASTERS", 
              x="Event Type", 
              y="Amount in Million USD") +
         theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
         scale_fill_discrete(name="Damage Types")
+
+VII-) CONCLUSION
+
+   Based on the data it can be inferred that the natural disaster capable of provoking the greatest number of negative causalities from death to injury, as well as economic losses in crops and properties is the tornado.
+   It should be noted that although floods and hurricanes have a great potential for economic damage, they do not have as lethal or malicious potential as tornadoes.
