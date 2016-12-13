@@ -1,8 +1,17 @@
+I-) ESSENTIAL PACKAGES
+library(ggplot2)
+library(plyr)
+library(reshape2)
+
+
+II-)PREPARING DATA
 setwd("/Users/smsanda/Desktop")
-download.file("http://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2", "/Users/smsanda/Desktop/StormData.csv.bz2")
+download.file("http://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2", "/Users/User/StormData.csv.bz2")
 data <- read.csv("StormData.csv.bz2")
 dim(data)
 [1] 902297     37
+
+III-) MEETING STORM DATA
 
 str(data)
 'data.frame':	902297 obs. of  37 variables:
@@ -124,6 +133,7 @@ names(data)
 [34] "LATITUDE_E" "LONGITUDE_" "REMARKS"   
 [37] "REFNUM"    
 
+IV-) PREPARING ANALYSIS
 StormFatal <- subset(data,as.numeric(data$FATALITIES)>0)
    StormFatal <- data.frame(StormFatal$EVTYPE,StormFatal$FATALITIES)
    StormFatalAgg <- aggregate(as.numeric(StormFatal.FATALITIES) ~ StormFatal.EVTYPE,StormFatal,sum)
@@ -136,3 +146,57 @@ StormFatalAgg <- aggregate(as.numeric(StormFatal.FATALITIES) ~ StormFatal.EVTYPE
 colnames(StormFatalAgg) <- c("Event","Fatalities")
 StormFatalSort <- arrange(StormFatalAgg,desc(Fatalities))
 head(StormFatalSort)
+
+StormData <- subset(data, (INJURIES + FATALITIES + CROPDMG + PROPDMG) > 0, 
+               c("EVTYPE", "INJURIES", "FATALITIES", "CROPDMG", 
+                "PROPDMG", "CROPDMGEXP", "PROPDMGEXP"))
+> dim(StormData)
+[1] 254633      7
+
+StormData[StormData$PROPDMGEXP=="K",]$PROPDMG <- 
+     StormData[StormData$PROPDMGEXP=="K",]$PROPDMG / 1000
+StormData[StormData$PROPDMGEXP=="B",]$PROPDMG <- 
+    StormData[StormData$PROPDMGEXP=="B",]$PROPDMG * 1000
+StormData[StormData$CROPDMGEXP=="K",]$CROPDMG <- 
+    StormData[StormData$CROPDMGEXP=="K",]$CROPDMG / 1000
+StormData[StormData$CROPDMGEXP=="B",]$CROPDMG <- 
+    StormData[StormData$CROPDMGEXP=="B",]$CROPDMG * 1000
+StormDataAggr <- aggregate(x=StormData[,c("INJURIES", "FATALITIES", "CROPDMG", "PROPDMG")], 
+                            by=list(StormData$EVTYPE), FUN=sum)
+colnames(StormDataAggr)[1] <- "EVTYPE"
+HealthData <- StormDataAggr[,c("EVTYPE", "INJURIES", "FATALITIES")]
+HealthData$TOTAL <- HealthData$INJURIES + HealthData$FATALITIES
+HealthData <- na.omit(HealthData[HealthData$TOTAL > 0,])
+dim(HealthData)
+[1] 220   4
+EconomicData <- StormDataAggr[,c("EVTYPE", "CROPDMG", "PROPDMG")]
+EconomicData$TOTAL <- EconomicData$CROPDMG + EconomicData$PROPDMG
+conomicData <- na.omit(EconomicData[EconomicData$TOTAL > 0,])
+dim(EconomicData)
+[1] 431   4
+                
+HealthData <- arrange(HealthData, desc(FATALITIES), desc(INJURIES), desc(TOTAL))
+HealthTop10 <- head(HealthData, 10)
+colnames(HealthTop10) <- c("EVTYPE", "Injuries", "Fatalities","Total")
+ 
+HealthTop10 <- melt(HealthTop10, id.vars = 1)
+ggplot(HealthTop10, aes(x=EVTYPE, y=value)) + 
+    geom_bar(aes(fill = variable), position = "dodge", stat="identity") + 
+    labs(title="FATALITIES CAUSED BY NATURAL DISASTERS", 
+         x="Event Type", y="Number of People") +
+     theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+   scale_fill_discrete(name="Damage Types")
+
+EconomicData <- arrange(EconomicData, desc(TOTAL), desc(PROPDMG), desc(CROPDMG))
+EconomicTop10 <- head(EconomicData, n=10)
+colnames(EconomicTop10) <- c("EVTYPE", "Crop", "Property", "Total")
+EconomicTop10 <- melt(EconomicTop10, id.vars = 1)
+ggplot(EconomicTop10, aes(x=EVTYPE, y=value)) + 
+        geom_bar(aes(fill = variable), 
+                 position = "dodge", 
+                 stat="identity") + 
+        labs(title="ECONOMIC EFFECTS OF NATURAL DISASTERS", 
+             x="Event Type", 
+             y="Amount in Million USD") +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+        scale_fill_discrete(name="Damage Types")
