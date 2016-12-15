@@ -5,6 +5,7 @@ library(reshape2)
 
 
 II-)PREPARING DATA
+
 setwd("/Users/User/Desktop")
 download.file("http://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2", "/Users/User/StormData.csv.bz2")
 data <- read.csv("StormData.csv.bz2")
@@ -150,7 +151,7 @@ head(StormFatalSort)
 StormData <- subset(data, (INJURIES + FATALITIES + CROPDMG + PROPDMG) > 0, 
                c("EVTYPE", "INJURIES", "FATALITIES", "CROPDMG", 
                 "PROPDMG", "CROPDMGEXP", "PROPDMGEXP"))
-> dim(StormData)
+dim(StormData)
 [1] 254633      7
 
 StormData[StormData$PROPDMGEXP=="K",]$PROPDMG <- 
@@ -171,7 +172,7 @@ dim(HealthData)
 [1] 220   4
 EconomicData <- StormDataAggr[,c("EVTYPE", "CROPDMG", "PROPDMG")]
 EconomicData$TOTAL <- EconomicData$CROPDMG + EconomicData$PROPDMG
-conomicData <- na.omit(EconomicData[EconomicData$TOTAL > 0,])
+EconomicData <- na.omit(EconomicData[EconomicData$TOTAL > 0,])
 dim(EconomicData)
 [1] 431   4
  
