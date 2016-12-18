@@ -61,9 +61,9 @@ names(Data)
 
 IV-) PREPARING ANALYSIS
 StormFatal <- subset(Data,as.numeric(Data$FATALITIES)>0)
-   StormFatal <- data.frame(StormFatal$EVTYPE,StormFatal$FATALITIES)
-   StormFatalAgg <- aggregate(as.numeric(StormFatal.FATALITIES) ~ StormFatal.EVTYPE,StormFatal,sum)
-   colnames(StormFatalAgg) <- c("Event","Fatalities")
+StormFatal <- data.frame(StormFatal$EVTYPE,StormFatal$FATALITIES)
+StormFatalAgg <- aggregate(as.numeric(StormFatal.FATALITIES) ~ StormFatal.EVTYPE,StormFatal,sum)
+colnames(StormFatalAgg) <- c("Event","Fatalities")
    
 library(dplyr)
 StormFatal <- subset(Data,as.numeric(data$FATALITIES)>0)
