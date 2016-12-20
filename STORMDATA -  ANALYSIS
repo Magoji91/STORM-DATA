@@ -2,12 +2,15 @@ I-) ESSENTIAL PACKAGES
 library(knitr)
 library(ggplot2)
 library(plyr)
-library(reshape2)
+library(lattice)
+library(dplyr)
 
 
-II-)PREPARING DATA
-
+II-) DATA PROCESSING
+#Set the working directory
 setwd("/Users/User/Desktop")
+
+#Read the input file repdata-data-StormData.csv and unzip
 if(!file.exists("./repdata-data-StormData.csv.bz2")){
   file.create("./repdata-data-StormData.csv.bz2")
   URL <- "http://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
@@ -15,12 +18,13 @@ if(!file.exists("./repdata-data-StormData.csv.bz2")){
   download.file(URL, destfile)
 }
 
+III-) DATA INFORMATION
+
 Data<-read.table("repdata-data-StormData.csv.bz2", header=T, sep = ",",
                  colClasses=c("NULL",NA,rep("NULL",4),NA,NA,rep("NULL",3)
                               ,NA,rep("NULL",10),NA,NA,NA,NA,NA,NA,rep("NULL",9)))
-
-III-) MEETING STORM DATA
-
+sum(is.na(Data))   
+[1] 0
 
 dim(Data)
 [1] 902297     10
@@ -60,14 +64,24 @@ names(Data)
  [7] "PROPDMG"    "PROPDMGEXP" "CROPDMG"   
 [10] "CROPDMGEXP"
 
-IV-) PREPARING ANALYSIS
-StormFatal <- subset(Data,as.numeric(Data$FATALITIES)>0)
-StormFatal <- data.frame(StormFatal$EVTYPE,StormFatal$FATALITIES)
-StormFatalAgg <- aggregate(as.numeric(StormFatal.FATALITIES) ~ StormFatal.EVTYPE,StormFatal,sum)
-colnames(StormFatalAgg) <- c("Event","Fatalities")
+
+
+
+IV-) DATA ANALYSIS
+
+
+CLASSIFY NATURAL DISASTERS FOR THEIR HARMFUL POTENTIAL
+
+FATALITIES
+*Data subset should include only the EVTYPE columns and FATALITIES as long as Fatalities are greater than 0 (StormFatal)
+*Add FATALITIES by EVTYPE (StormFatalAgg)
+*Change the column name of StormFatalAgg to "Event" and "Fatalities"
+*Sort StormFatalAgg by descending Count of Fatalities
+*Display the first 6 rows of sorted data (StormFatalSort)
    
 library(dplyr)
-StormFatal <- subset(Data,as.numeric(data$FATALITIES)>0)
+*Select data by event type and fatalities and then add by each event
+StormFatal <- subset(Data,as.numeric(Data$FATALITIES)>0)
 StormFatal <- data.frame(StormFatal$EVTYPE,StormFatal$FATALITIES)
 StormFatalAgg <- aggregate(as.numeric(StormFatal.FATALITIES) ~ StormFatal.EVTYPE,StormFatal,sum)
 colnames(StormFatalAgg) <- c("Event","Fatalities")
@@ -81,13 +95,44 @@ head(StormFatalSort)
 5      LIGHTNING        816
 6      TSTM WIND        504
 
+INJURIES
+*Data Subset will include the EVTYPE and INJURY columns provided that the lesions are greater than 0 (StormInj)
+*After adding INJURIES to EVTYPE (StormInjAgg)
+*Change the names of StormInjAgg columns to "Event" and "Injuries"
+*Sort StormInjAgg per descending Number of lesions
+*Display the first 6 rows of sorted data (StormInjSort)
 
-StormData <- subset(Data, (INJURIES + FATALITIES + CROPDMG + PROPDMG) > 0, 
-               c("EVTYPE", "INJURIES", "FATALITIES", "CROPDMG", 
-                "PROPDMG", "CROPDMGEXP", "PROPDMGEXP"))
-dim(StormData)
-[1] 254633      7
+*Select data for event type and injuries and sum wiht each event
+StormInj <- subset(Data,as.numeric(Data$INJURIES)>0)
+StormInj <- data.frame(StormInj$EVTYPE,StormInj$INJURIES)
+StormInjAgg <- aggregate(as.numeric(StormInj.INJURIES) ~ StormInj.EVTYPE,StormInj,sum)
+colnames(StormInjAgg) <- c("Event","Injuries")
+StormInjSort <- arrange(StormInjAgg,desc(Injuries))
+head(StormInjSort)
+           Event Injuries
+1        TORNADO    91346
+2      TSTM WIND     6957
+3          FLOOD     6789
+4 EXCESSIVE HEAT     6525
+5      LIGHTNING     5230
+6           HEAT     2100
+ 
+ANALYSIS OF HARMFUL EFFECTS CAUSED BY NATURAL DISASTERS
+library(lattice)
+   StormFatalTop10 <- head(StormFatalSort,n=10)
+   StormInjTop10 <- head(StormInjSort,n=10)
+   
+   Fatal <- barchart( reorder(Event, Fatalities) ~ Fatalities,
+                   data=StormFatalTop10,
+                   cex=0.6,
+                   main="Top Twenty Weather-related Causes of Fatalities")
+   
+   Inj <- barchart( reorder(Event, Injuries) ~ Injuries,
+                   data=StormInjTop10,
+                   cex=0.6,
+                   main="Top Twenty Weather-related Causes of Injuries")
 
+VI-) ANALYSIS OF ECONOMIC DAMAGE CAUSED BY NATURAL DISASTERS
 StormData[StormData$PROPDMGEXP=="K",]$PROPDMG <- 
      StormData[StormData$PROPDMGEXP=="K",]$PROPDMG / 1000
 StormData[StormData$PROPDMGEXP=="B",]$PROPDMG <- 
@@ -109,22 +154,15 @@ EconomicData$TOTAL <- EconomicData$CROPDMG + EconomicData$PROPDMG
 EconomicData <- na.omit(EconomicData[EconomicData$TOTAL > 0,])
 dim(EconomicData)
 [1] 431   4
- 
- 
-V-) ANALYSIS OF HARMFUL EFFECTS CAUSED BY NATURAL DISASTERS
-HealthData <- arrange(HealthData, desc(FATALITIES), desc(INJURIES), desc(TOTAL))
-HealthTop10 <- head(HealthData, 10)
-colnames(HealthTop10) <- c("EVTYPE", "Injuries", "Fatalities","Total")
- 
-HealthTop10 <- melt(HealthTop10, id.vars = 1)
-ggplot(HealthTop10, aes(x=EVTYPE, y=value)) + 
-    geom_bar(aes(fill = variable), position = "dodge", stat="identity") + 
-    labs(title="HARMFUL EFFECTS OF NATURAL DISASTERS", 
-         x="Event Type", y="Number of People") +
-     theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
-   scale_fill_discrete(name="Damage Types")
 
-VI-) ANALYSIS OF ECONOMIC DAMAGE CAUSED BY NATURAL DISASTERS
+
+
+
+
+
+
+
+
 EconomicData <- arrange(EconomicData, desc(TOTAL), desc(PROPDMG), desc(CROPDMG))
 EconomicTop10 <- head(EconomicData, n=10)
 colnames(EconomicTop10) <- c("EVTYPE", "Crop", "Property", "Total")
