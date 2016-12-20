@@ -1,12 +1,11 @@
-I-) ESSENTIAL PACKAGES
+1-) ESSENTIAL PACKAGES
 library(knitr)
 library(ggplot2)
 library(plyr)
-library(lattice)
 library(dplyr)
 
 
-II-) DATA PROCESSING
+2-) DATA PROCESSING
 #Set the working directory
 setwd("/Users/User/Desktop")
 
@@ -18,7 +17,7 @@ if(!file.exists("./repdata-data-StormData.csv.bz2")){
   download.file(URL, destfile)
 }
 
-III-) DATA INFORMATION
+3-) DATA INFORMATION
 
 Data<-read.table("repdata-data-StormData.csv.bz2", header=T, sep = ",",
                  colClasses=c("NULL",NA,rep("NULL",4),NA,NA,rep("NULL",3)
@@ -65,119 +64,91 @@ names(Data)
 [10] "CROPDMGEXP"
 
 
+4-) DATA ANALYSIS OF THE HARMFUL EFFECTS CAUSED BY NATURAL DISASTERS
+I-) Select variables related to harmful effects caused by natural disasters
+PopulationData <- select(Data, EVTYPE, FATALITIES, INJURIES)
+
+II-) Elects the natural disasters that cause the greatest number of fatalities in the EVYTPE group
+
+PopulationFatalitiesData <-  
+    PopulationData %>%
+    group_by(EVTYPE) %>%
+    summarize(Fatalities = sum(FATALITIES)) %>% 
+    arrange(desc(Fatalities)) %>%
+    head(10)
+
+PopulationFatalitiesData$EVTYPE <- factor(PopulationFatalitiesData$EVTYPE, 
+                                          levels = PopulationFatalitiesData$EVTYPE)
+                                          
+III-) Choose the same number of variables that cause injury in the EVYTPE group                                       
+ PopulationInjuriesData <-  
+    PopulationData %>%
+    group_by(EVTYPE) %>%
+    summarize(Injuries = sum(INJURIES)) %>% 
+    arrange(desc(Injuries)) %>%
+    head(10)
+
+PopulationInjuriesData$EVTYPE <- factor(PopulationInjuriesData$EVTYPE, 
+                                          levels = PopulationInjuriesData$EVTYPE)                                         
+
+IV-) PLOT HARMFUL EFFECTS CAUSED BY NATURAL DISASTERS
+ggplot(PopulationFatalitiesData, aes(x = EVTYPE, y = Fatalities)) + 
+    geom_bar(stat = "identity", fill = "PURPLE") +
+    theme(axis.text.x = element_text(angle = 90,hjust = 1)) +
+    xlab("Weather Event") + ylab("Fatalities") +
+    ggtitle("HARMFUL EFFECTS CAUSED BY NATURAL DISASTERS")
 
 
-IV-) DATA ANALYSIS
+5-) DATA ANALYSIS OF ECONOMIC DAMAGE CAUSED BY NATURAL DISASTERS
+I-) Research the economic impacts caused by natural disasters on property and crops through the variables PROPDMG and CROPDMG.
+
+II-) Note that the variables PROPDMGEXP and CROPDMGEXP are indicators for exponential scale.
+EconomicData <- select(Data, EVTYPE, PROPDMG, PROPDMGEXP, CROPDMG, CROPDMGEXP)
+
+III-)Correcting the Scramble of Alphabetical Scales, which represent the exponential values of the damage
+EconomicData$PROPDMGEXP <- toupper(EconomicData$PROPDMGEXP)
+EconomicData$CROPDMGEXP <- toupper(EconomicData$CROPDMGEXP)
+numeric_converter <- function(x){
+    x <- as.character(x)
+    ifelse (x == "B", as.numeric(1000000000),
+    ifelse (x == "M", as.numeric(1000000), 
+    ifelse (x == "K", as.numeric(1000),
+    ifelse (x == "H", as.numeric(100), 0))))
+}
+
+IV-) Convert the symbology of letters to their numerical value
+EconomicData$PROPDMGEXP <- numeric_converter(EconomicData$PROPDMGEXP)
+EconomicData$CROPDMGEXP <- numeric_converter(EconomicData$CROPDMGEXP)
+
+V-) Calculate the economic damage value through the use of exponential indicators.
+EconomicData$PROPDMGVALUE <- as.numeric(EconomicData$PROPDMG*EconomicData$PROPDMGEXP)
+EconomicData$CROPDMGVALUE <- as.numeric(EconomicData$CROPDMG*EconomicData$CROPDMGEXP)
+
+VI-) Merge crop damage and property damage values to create a single incident for economic damage.
+EconomicData$DmgVal <- EconomicData$PROPDMGVALUE + EconomicData$CROPDMGVALUE
+
+VII-) The creation of the chart will depend on the grouping of economic damage data by type of natural disaster (EVTYPE) and the insertion of the damage value in descending order. -benzoic acid.
+    EconomicDamageData <-  
+    EconomicData %>%
+    group_by(EVTYPE) %>%
+    summarize(DmgVal = sum(DmgVal)) %>% 
+    arrange(desc(DmgVal)) %>%
+    head(10)
 
 
-CLASSIFY NATURAL DISASTERS FOR THEIR HARMFUL POTENTIAL
+EconomicDamageData$EVTYPE <- factor(EconomicDamageData$EVTYPE, 
+                               levels = EconomicDamageData$EVTYPE)
 
-FATALITIES
-*Data subset should include only the EVTYPE columns and FATALITIES as long as Fatalities are greater than 0 (StormFatal)
-*Add FATALITIES by EVTYPE (StormFatalAgg)
-*Change the column name of StormFatalAgg to "Event" and "Fatalities"
-*Sort StormFatalAgg by descending Count of Fatalities
-*Display the first 6 rows of sorted data (StormFatalSort)
-   
-library(dplyr)
-*Select data by event type and fatalities and then add by each event
-StormFatal <- subset(Data,as.numeric(Data$FATALITIES)>0)
-StormFatal <- data.frame(StormFatal$EVTYPE,StormFatal$FATALITIES)
-StormFatalAgg <- aggregate(as.numeric(StormFatal.FATALITIES) ~ StormFatal.EVTYPE,StormFatal,sum)
-colnames(StormFatalAgg) <- c("Event","Fatalities")
-StormFatalSort <- arrange(StormFatalAgg,desc(Fatalities))
-head(StormFatalSort)
- Event Fatalities
-1        TORNADO       5633
-2 EXCESSIVE HEAT       1903
-3    FLASH FLOOD        978
-4           HEAT        937
-5      LIGHTNING        816
-6      TSTM WIND        504
-
-INJURIES
-*Data Subset will include the EVTYPE and INJURY columns provided that the lesions are greater than 0 (StormInj)
-*After adding INJURIES to EVTYPE (StormInjAgg)
-*Change the names of StormInjAgg columns to "Event" and "Injuries"
-*Sort StormInjAgg per descending Number of lesions
-*Display the first 6 rows of sorted data (StormInjSort)
-
-*Select data for event type and injuries and sum wiht each event
-StormInj <- subset(Data,as.numeric(Data$INJURIES)>0)
-StormInj <- data.frame(StormInj$EVTYPE,StormInj$INJURIES)
-StormInjAgg <- aggregate(as.numeric(StormInj.INJURIES) ~ StormInj.EVTYPE,StormInj,sum)
-colnames(StormInjAgg) <- c("Event","Injuries")
-StormInjSort <- arrange(StormInjAgg,desc(Injuries))
-head(StormInjSort)
-           Event Injuries
-1        TORNADO    91346
-2      TSTM WIND     6957
-3          FLOOD     6789
-4 EXCESSIVE HEAT     6525
-5      LIGHTNING     5230
-6           HEAT     2100
- 
-ANALYSIS OF HARMFUL EFFECTS CAUSED BY NATURAL DISASTERS
-library(lattice)
-   StormFatalTop10 <- head(StormFatalSort,n=10)
-   StormInjTop10 <- head(StormInjSort,n=10)
-   
-   Fatal <- barchart( reorder(Event, Fatalities) ~ Fatalities,
-                   data=StormFatalTop10,
-                   cex=0.6,
-                   main="Top Twenty Weather-related Causes of Fatalities")
-   
-   Inj <- barchart( reorder(Event, Injuries) ~ Injuries,
-                   data=StormInjTop10,
-                   cex=0.6,
-                   main="Top Twenty Weather-related Causes of Injuries")
-
-VI-) ANALYSIS OF ECONOMIC DAMAGE CAUSED BY NATURAL DISASTERS
-StormData[StormData$PROPDMGEXP=="K",]$PROPDMG <- 
-     StormData[StormData$PROPDMGEXP=="K",]$PROPDMG / 1000
-StormData[StormData$PROPDMGEXP=="B",]$PROPDMG <- 
-    StormData[StormData$PROPDMGEXP=="B",]$PROPDMG * 1000
-StormData[StormData$CROPDMGEXP=="K",]$CROPDMG <- 
-    StormData[StormData$CROPDMGEXP=="K",]$CROPDMG / 1000
-StormData[StormData$CROPDMGEXP=="B",]$CROPDMG <- 
-    StormData[StormData$CROPDMGEXP=="B",]$CROPDMG * 1000
-StormDataAggr <- aggregate(x=StormData[,c("INJURIES", "FATALITIES", "CROPDMG", "PROPDMG")], 
-                            by=list(StormData$EVTYPE), FUN=sum)
-colnames(StormDataAggr)[1] <- "EVTYPE"
-HealthData <- StormDataAggr[,c("EVTYPE", "INJURIES", "FATALITIES")]
-HealthData$TOTAL <- HealthData$INJURIES + HealthData$FATALITIES
-HealthData <- na.omit(HealthData[HealthData$TOTAL > 0,])
-dim(HealthData)
-[1] 220   4
-EconomicData <- StormDataAggr[,c("EVTYPE", "CROPDMG", "PROPDMG")]
-EconomicData$TOTAL <- EconomicData$CROPDMG + EconomicData$PROPDMG
-EconomicData <- na.omit(EconomicData[EconomicData$TOTAL > 0,])
-dim(EconomicData)
-[1] 431   4
+VIII-) PLOT ECONOMIC DAMAGE CAUSED BY NATURAL DISASTERS
+ggplot(EconomicDamageData, aes(x = EVTYPE, y = DmgVal)) + 
+    geom_bar(stat = "identity", fill = "BLUE") +
+    theme(axis.text.x = element_text(angle = 90,hjust = 1)) +
+    xlab("Weather Event") + ylab("Economic Damage") +
+    ggtitle("ECONOMIC DAMAGE CAUSED BY NATURAL DISASTERS")
 
 
 
-
-
-
-
-
-
-EconomicData <- arrange(EconomicData, desc(TOTAL), desc(PROPDMG), desc(CROPDMG))
-EconomicTop10 <- head(EconomicData, n=10)
-colnames(EconomicTop10) <- c("EVTYPE", "Crop", "Property", "Total")
-EconomicTop10 <- melt(EconomicTop10, id.vars = 1)
-ggplot(EconomicTop10, aes(x=EVTYPE, y=value)) + 
-        geom_bar(aes(fill = variable), 
-                 position = "dodge", 
-                 stat="identity") + 
-        labs(title="ECONOMIC DAMAGE CAUSED BY NATURAL DISASTERS", 
-             x="Event Type", 
-             y="Amount in Million USD") +
-        theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
-        scale_fill_discrete(name="Damage Types")
-
-VII-) CONCLUSION
+6-) CONCLUSION
 
    Based on the data it can be inferred that the natural disaster capable of provoking the greatest number of negative causalities from death to injury, as well as economic losses in crops and properties is the tornado.
    It should be noted that although floods and hurricanes have a great potential for economic damage, they do not have as lethal or malicious potential as tornadoes.
